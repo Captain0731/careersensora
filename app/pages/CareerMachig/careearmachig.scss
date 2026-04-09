@@ -1,0 +1,176 @@
+.careerMatchingPage {
+	min-height: 100vh;
+	padding: 28px 16px 56px;
+	background:
+		radial-gradient(circle at 8% 0%, rgba(182, 245, 208, 0.42), transparent 34%),
+		radial-gradient(circle at 92% 12%, rgba(92, 206, 134, 0.2), transparent 30%),
+		linear-gradient(180deg, #f5fbf7 0%, #eef8f2 100%);
+	color: #143a2a;
+	font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.careerMatchingPage,
+.careerMatchingPage * {
+	box-sizing: border-box;
+}
+
+.careerMatchingHero,
+.careerCards {
+	width: min(1140px, 100%);
+	margin: 0 auto;
+}
+
+.careerMatchingHero {
+	text-align: center;
+	padding-bottom: 16px;
+}
+
+.heroKicker {
+	display: inline-flex;
+	padding: 8px 14px;
+	border-radius: 999px;
+	margin: 0;
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	background: rgba(168, 240, 198, 0.32);
+}
+
+.careerMatchingHero h1 {
+	margin: 14px 0 8px;
+	font-size: clamp(2rem, 3.8vw, 2.8rem);
+	line-height: 1.06;
+	letter-spacing: -0.03em;
+	font-family: Georgia, 'Times New Roman', serif;
+}
+
+.careerMatchingHero p {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.6;
+	color: rgba(20, 58, 42, 0.72);
+}
+
+.careerCards {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-top: 14px;
+}
+
+.careerCard {
+	border: 0;
+	text-align: left;
+	padding: 18px;
+	border-radius: 22px;
+	background: rgba(255, 255, 255, 0.82);
+	box-shadow: 0 12px 28px rgba(20, 58, 42, 0.08), inset 0 0 0 1px rgba(20, 58, 42, 0.1);
+	cursor: pointer;
+	transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+	display: grid;
+	gap: 10px;
+}
+
+.careerCard:hover,
+.careerCard.active {
+	transform: translateY(-2px);
+	background: linear-gradient(180deg, rgba(227, 247, 234, 0.9), rgba(255, 255, 255, 0.92));
+	box-shadow: 0 16px 34px rgba(83, 194, 121, 0.2), inset 0 0 0 1px rgba(74, 214, 109, 0.32);
+}
+
+.cardTop {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.cardTop h2 {
+	margin: 0;
+	font-size: 1.25rem;
+	font-family: Georgia, 'Times New Roman', serif;
+}
+
+.matchLevel {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 7px 11px;
+	border-radius: 999px;
+	font-size: 0.82rem;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	background: rgba(20, 58, 42, 0.08);
+	color: #143a2a;
+}
+
+.matchLevel i {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+	box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.55);
+}
+
+.matchLevel.high i {
+	background: #2ec46a;
+}
+
+.matchLevel.medium i {
+	background: #e4bb3f;
+}
+
+.matchLevel.good i {
+	background: #4fa6df;
+}
+
+.matchScore {
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 800;
+	color: #1c5a40;
+}
+
+.whyTitle {
+	margin: 0;
+	font-size: 0.82rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: rgba(20, 58, 42, 0.56);
+}
+
+.fitReason {
+	margin: 0;
+	line-height: 1.55;
+	font-size: 0.96rem;
+	color: rgba(20, 58, 42, 0.82);
+}
+
+.roadmapHint {
+	margin: 2px 0 0;
+	padding-top: 10px;
+	border-top: 1px solid rgba(20, 58, 42, 0.12);
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #226847;
+}
+
+@media (max-width: 860px) {
+	.careerCards {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 640px) {
+	.careerMatchingPage {
+		padding: 20px 12px 42px;
+	}
+
+	.careerCard {
+		padding: 16px;
+		border-radius: 18px;
+	}
+}

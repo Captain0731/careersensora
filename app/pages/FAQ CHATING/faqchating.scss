@@ -1,0 +1,249 @@
+.faqAssistant {
+	min-height: calc(100vh - 80px);
+	padding: 56px 20px;
+	background:
+		radial-gradient(circle at 10% 20%, rgba(52, 197, 109, 0.2) 0, rgba(52, 197, 109, 0) 28%),
+		radial-gradient(circle at 90% 80%, rgba(44, 160, 90, 0.2) 0, rgba(44, 160, 90, 0) 30%),
+		linear-gradient(135deg, #f5f8fb 0%, #ebf5ef 100%);
+}
+
+.faqShell {
+	max-width: 980px;
+	margin: 0 auto;
+	background: rgba(255, 255, 255, 0.9);
+	backdrop-filter: blur(5px);
+	border: 1px solid rgba(52, 197, 109, 0.2);
+	border-radius: 16px;
+	padding: 28px;
+	box-shadow: 0 18px 40px rgba(19, 33, 27, 0.12);
+}
+
+.faqHeader {
+	text-align: center;
+	margin-bottom: 18px;
+
+	h1 {
+		margin: 0;
+		font-size: clamp(1.8rem, 4vw, 2.5rem);
+		color: #1f2933;
+	}
+
+	p {
+		margin: 10px 0 0;
+		color: #52606d;
+		font-size: 1rem;
+	}
+}
+
+.suggestions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: center;
+	margin-bottom: 18px;
+}
+
+.suggestionBtn {
+	border: 1px solid rgba(52, 197, 109, 0.45);
+	background: #fff;
+	color: #2f855a;
+	font-size: 0.92rem;
+	padding: 9px 12px;
+	border-radius: 999px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+
+	&:hover {
+		transform: translateY(-1px);
+		background: rgba(52, 197, 109, 0.12);
+	}
+}
+
+.chatWindow {
+	height: min(56vh, 560px);
+	border: 1px solid rgba(79, 105, 84, 0.18);
+	border-radius: 14px;
+	padding: 14px;
+	overflow-y: auto;
+	background: linear-gradient(180deg, #fdfefe 0%, #f4f9f5 100%);
+
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(52, 197, 109, 0.4);
+		border-radius: 999px;
+	}
+}
+
+.messageRow {
+	display: flex;
+	margin-bottom: 12px;
+
+	&.isUser {
+		justify-content: flex-end;
+	}
+
+	&.isAI {
+		justify-content: flex-start;
+	}
+}
+
+.messageBubble {
+	max-width: min(82%, 680px);
+	padding: 12px 14px;
+	border-radius: 14px;
+	box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+
+	p {
+		margin: 0;
+		line-height: 1.6;
+		color: #22303c;
+	}
+
+	small {
+		display: block;
+		margin-top: 8px;
+		font-size: 0.74rem;
+		opacity: 0.72;
+	}
+}
+
+.isUser .messageBubble {
+	background: linear-gradient(135deg, #34c56d 0%, #2ca05a 100%);
+	border-bottom-right-radius: 6px;
+
+	p,
+	small {
+		color: #fff;
+	}
+}
+
+.isAI .messageBubble {
+	background: #fff;
+	border: 1px solid rgba(52, 197, 109, 0.25);
+	border-bottom-left-radius: 6px;
+}
+
+.aiBadge {
+	display: inline-block;
+	margin-bottom: 8px;
+	padding: 4px 9px;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	background: rgba(52, 197, 109, 0.14);
+	color: #2f855a;
+}
+
+.typingBubble {
+	min-width: 110px;
+}
+
+.typingDots {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+
+	span {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #34c56d;
+		animation: bounce 1.2s infinite ease-in-out;
+
+		&:nth-child(2) {
+			animation-delay: 0.16s;
+		}
+
+		&:nth-child(3) {
+			animation-delay: 0.32s;
+		}
+	}
+}
+
+.inputBar {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 10px;
+	margin-top: 14px;
+
+	input {
+		width: 100%;
+		padding: 13px 14px;
+		border: 1px solid rgba(79, 105, 84, 0.34);
+		border-radius: 10px;
+		font-size: 0.98rem;
+		background: #fff;
+
+		&:focus {
+			outline: none;
+			border-color: #34c56d;
+			box-shadow: 0 0 0 3px rgba(52, 197, 109, 0.18);
+		}
+	}
+
+	button {
+		border: none;
+		border-radius: 10px;
+		padding: 0 18px;
+		font-size: 0.95rem;
+		font-weight: 700;
+		background: linear-gradient(135deg, #34c56d 0%, #2ca05a 100%);
+		color: #fff;
+		cursor: pointer;
+		transition: transform 0.2s ease, opacity 0.2s ease;
+
+		&:hover:not(:disabled) {
+			transform: translateY(-1px);
+		}
+
+		&:disabled {
+			opacity: 0.55;
+			cursor: not-allowed;
+		}
+	}
+}
+
+@keyframes bounce {
+	0%,
+	80%,
+	100% {
+		transform: translateY(0);
+		opacity: 0.6;
+	}
+
+	40% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
+}
+
+@media (max-width: 720px) {
+	.faqAssistant {
+		padding: 30px 12px;
+	}
+
+	.faqShell {
+		padding: 14px;
+		border-radius: 12px;
+	}
+
+	.chatWindow {
+		height: 60vh;
+	}
+
+	.messageBubble {
+		max-width: 92%;
+	}
+
+	.inputBar {
+		grid-template-columns: 1fr;
+
+		button {
+			height: 44px;
+		}
+	}
+}

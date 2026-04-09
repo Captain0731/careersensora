@@ -1,0 +1,212 @@
+.jobFormPage {
+	min-height: 100vh;
+	padding: 34px 18px 72px;
+	background:
+		radial-gradient(circle at 7% 0%, rgba(168, 240, 198, 0.5), transparent 34%),
+		radial-gradient(circle at 94% 0%, rgba(74, 214, 109, 0.18), transparent 28%),
+		linear-gradient(180deg, #fbfbf8 0%, #eff8f2 100%);
+	display: grid;
+	place-items: start center;
+	font-family: 'Inter', 'Segoe UI', sans-serif;
+	color: #123326;
+}
+
+.jobFormCard {
+	width: min(100%, 980px);
+	padding: 30px;
+	border-radius: 30px;
+	background: rgba(255, 255, 255, 0.84);
+	border: 1px solid rgba(74, 214, 109, 0.16);
+	box-shadow:
+		0 24px 58px rgba(22, 49, 38, 0.12),
+		0 0 0 1px rgba(255, 255, 255, 0.74) inset;
+	backdrop-filter: blur(14px);
+}
+
+.loadingState {
+	min-height: 180px;
+	display: grid;
+	place-items: center;
+	font-weight: 700;
+	color: rgba(18, 51, 38, 0.74);
+}
+
+.formHeader h1 {
+	margin: 0;
+	font-size: clamp(2rem, 4vw, 2.7rem);
+	line-height: 1.1;
+	letter-spacing: -0.03em;
+	font-family: Georgia, 'Times New Roman', serif;
+}
+
+.formHeader p {
+	margin: 10px 0 0;
+	font-size: 1rem;
+	color: rgba(18, 51, 38, 0.72);
+}
+
+.applicationForm {
+	margin-top: 24px;
+	display: grid;
+	gap: 16px;
+}
+
+.formSection {
+	padding: 18px;
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.82);
+	box-shadow: inset 0 0 0 1px rgba(74, 214, 109, 0.1);
+	display: grid;
+	gap: 14px;
+}
+
+.formSection h2 {
+	margin: 0;
+	font-size: 1.08rem;
+	color: #123326;
+}
+
+.fieldGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.fieldGrid label {
+	display: grid;
+	gap: 8px;
+	font-weight: 600;
+	color: rgba(18, 51, 38, 0.8);
+	font-size: 0.95rem;
+}
+
+.fieldGrid input,
+.fieldGrid select,
+.addSkillRow input {
+	height: 44px;
+	border-radius: 12px;
+	border: 1px solid rgba(18, 51, 38, 0.14);
+	padding: 0 12px;
+	font: inherit;
+	color: #123326;
+	background: rgba(255, 255, 255, 0.9);
+	outline: none;
+	transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.fieldGrid input:focus,
+.fieldGrid select:focus,
+.addSkillRow input:focus {
+	border-color: rgba(47, 183, 90, 0.65);
+	box-shadow: 0 0 0 3px rgba(74, 214, 109, 0.16);
+}
+
+.skillsWrap {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.skillTag {
+	border: 0;
+	border-radius: 999px;
+	padding: 9px 12px;
+	background: rgba(168, 240, 198, 0.28);
+	color: #123326;
+	font-weight: 700;
+	font-size: 0.86rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	transition: transform 140ms ease, background 140ms ease;
+}
+
+.skillTag span {
+	width: 18px;
+	height: 18px;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	background: rgba(18, 51, 38, 0.12);
+	font-size: 0.86rem;
+}
+
+.skillTag:hover {
+	transform: translateY(-1px);
+	background: rgba(168, 240, 198, 0.38);
+}
+
+.addSkillRow {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.addSkillRow input {
+	flex: 1;
+	min-width: 220px;
+}
+
+.ghostButton {
+	height: 44px;
+	border-radius: 12px;
+	padding: 0 16px;
+	border: 1px solid rgba(18, 51, 38, 0.16);
+	background: #fff;
+	color: #123326;
+	font-size: 0.92rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.submitRow {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.applyNowButton {
+	border: 0;
+	border-radius: 999px;
+	padding: 13px 24px;
+	font-size: 0.98rem;
+	font-weight: 700;
+	color: #f7fff9;
+	background: linear-gradient(135deg, #4ad66d 0%, #2fb75a 100%);
+	box-shadow: 0 16px 30px rgba(74, 214, 109, 0.3);
+	cursor: pointer;
+	transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.applyNowButton:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 20px 34px rgba(74, 214, 109, 0.34);
+}
+
+.statusMessage {
+	margin-top: 16px;
+	padding: 12px 14px;
+	border-radius: 14px;
+	background: rgba(168, 240, 198, 0.3);
+	font-weight: 700;
+	color: #136838;
+}
+
+@media (max-width: 760px) {
+	.jobFormCard {
+		padding: 22px;
+		border-radius: 24px;
+	}
+
+	.fieldGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.submitRow {
+		justify-content: stretch;
+	}
+
+	.applyNowButton {
+		width: 100%;
+	}
+}

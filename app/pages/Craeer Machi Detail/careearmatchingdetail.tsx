@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 import './careermatchingdetails.scss';
 
 type CareerDetail = {
@@ -88,14 +86,12 @@ const careerDetails: CareerDetail[] = [
 	},
 ];
 
-export default function CareerMatchingDetail() {
-	const searchParams = useSearchParams();
-	const selectedCareerId = searchParams.get('career') ?? 'fullstack';
+type CareerMatchingDetailProps = {
+	selectedCareerId?: string;
+};
 
-	const detail = useMemo(
-		() => careerDetails.find((item) => item.id === selectedCareerId) ?? careerDetails[0],
-		[selectedCareerId],
-	);
+export default function CareerMatchingDetail({ selectedCareerId = 'fullstack' }: CareerMatchingDetailProps) {
+	const detail = careerDetails.find((item) => item.id === selectedCareerId) ?? careerDetails[0];
 
 	const downloadReport = () => {
 		window.print();

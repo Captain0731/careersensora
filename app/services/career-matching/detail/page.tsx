@@ -1,5 +1,7 @@
 import CareerMatchingDetail from '../../../pages/Craeer Machi Detail/careearmatchingdetail';
 
+export const dynamic = 'force-dynamic';
+
 type CareerMatchingDetailPageProps = {
 	searchParams?: {
 		career?: string;

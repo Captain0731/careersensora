@@ -14,8 +14,8 @@ export class ApiError extends Error {
 }
 
 /**
- * Calls `/api/v1/*` on the same origin. `next.config.ts` rewrites that path to Django
- * (`BACKEND_URL`, default http://127.0.0.1:8000). Restart `next dev` after changing `.env.local`.
+ * Calls `/api/v1/*` on the same origin.
+ * The App Router proxy at `app/api/v1/[[...path]]/route.ts` forwards those requests to the Express backend.
  */
 function apiV1Prefix(): string {
 	return '/api/v1';

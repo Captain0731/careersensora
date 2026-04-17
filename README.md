@@ -1,8 +1,8 @@
 # Hireonix
 
-Hireonix is a Next.js career intelligence platform that combines job discovery, recruiter workflows, AI interview practice, resume analysis, career mapping, FAQ chat assistance, and domain comparison tools in one frontend application.
+Hireonix is a full-stack career intelligence platform that combines job discovery, recruiter workflows, AI interview practice, resume analysis, career mapping, FAQ chat assistance, and domain comparison tools.
 
-The project is built with the Next.js App Router, React, TypeScript, and SCSS. It is currently frontend-only, with mock data and client-side state powering the main workflows.
+The project uses a Next.js App Router frontend and a Node.js/Express backend. The frontend is deployed on Vercel and the backend is deployed on Render.
 
 ## What the site does
 
@@ -56,12 +56,20 @@ npm run lint
 
 ```text
 app/
+  api/
   components/
   pages/
   services/
+  utils/
   layout.tsx
   page.tsx
   globals.css
+server/
+  controllers/
+  middleware/
+  models/
+  routes/
+  index.js
 public/
 ```
 
@@ -214,14 +222,54 @@ Hireonix uses a simple client-side auth approach for the recruiter flow.
 
 ## Data Flow Notes
 
-This app does not use a backend API yet.
+The frontend talks to the backend through a same-origin proxy route at `/api/v1/[[...path]]`.
 
-Instead, it uses:
+Flow:
 
-- React component state
-- Local storage for auth and profile persistence
-- Hardcoded mock data for jobs, questions, and career content
-- Client-side validation and matching logic
+- Browser code calls `/api/v1/...`
+- Next.js forwards those requests to the Render backend
+- Express handles auth, jobs, interviews, and other API routes
+- Local storage is used only for the browser auth token and cached profile data
+
+## Environment Variables
+
+Frontend `.env.local`:
+
+```dotenv
+NEXT_PUBLIC_BACKEND_URL=https://careersensora.onrender.com
+BACKEND_URL=https://careersensora.onrender.com
+```
+
+Backend `.env`:
+
+```dotenv
+PORT=5000
+MONGO_URI=your-hosted-mongodb-uri
+JWT_SECRET=replace-with-a-long-random-secret
+CORS_ORIGIN=https://your-frontend.vercel.app,http://localhost:3000
+GROQ_API_KEY=your-groq-api-key
+NODE_ENV=production
+```
+
+Example templates are available in [.env.example](.env.example) and [server/.env.example](server/.env.example).
+
+## Deployment Checklist
+
+Frontend on Vercel:
+
+1. Set the root directory to the frontend app.
+2. Add `NEXT_PUBLIC_BACKEND_URL=https://careersensora.onrender.com`.
+3. Add `BACKEND_URL=https://careersensora.onrender.com`.
+4. Deploy with `npm run build`.
+
+Backend on Render:
+
+1. Set the root directory to `server`.
+2. Use `npm install && npm run build` as the build command.
+3. Use `npm start` as the start command.
+4. Set `MONGO_URI` to a hosted MongoDB URI.
+5. Set `CORS_ORIGIN` to your Vercel domain.
+6. Set `JWT_SECRET` and `GROQ_API_KEY` in Render environment variables.
 
 ## Styling Notes
 

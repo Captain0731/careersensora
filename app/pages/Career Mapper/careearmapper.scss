@@ -55,6 +55,17 @@
 	line-height: 1.65;
 }
 
+.mapperStatus {
+	margin-top: 12px;
+	font-size: 0.95rem;
+	color: rgba(21, 58, 43, 0.65);
+}
+
+.mapperStatusError {
+	color: #b42318;
+	font-weight: 600;
+}
+
 .mapperSteps {
 	display: grid;
 	gap: 14px;

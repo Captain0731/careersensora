@@ -297,6 +297,108 @@
 	transform: translateY(-2px);
 }
 
+.applyButton:disabled {
+	opacity: 0.65;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.jobListError {
+	color: #b42318;
+	font-weight: 600;
+	margin: 0 0 12px;
+}
+
+.applyModalOverlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(18, 51, 38, 0.45);
+	display: grid;
+	place-items: center;
+	padding: 20px;
+	z-index: 100;
+	backdrop-filter: blur(6px);
+}
+
+.applyModal {
+	position: relative;
+	width: min(100%, 440px);
+	padding: 28px;
+	border-radius: 24px;
+	background: rgba(250, 249, 246, 0.98);
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+	border: 1px solid rgba(74, 214, 109, 0.2);
+	animation: modalIn 180ms ease-out;
+}
+
+.applyModal h2 {
+	margin: 0 0 8px;
+	font-size: 1.35rem;
+	color: #123326;
+}
+
+.applyModalCompany {
+	margin: 0 0 18px;
+	font-weight: 600;
+	color: rgba(18, 51, 38, 0.65);
+}
+
+.applyModalClose {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	width: 36px;
+	height: 36px;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(18, 51, 38, 0.06);
+	font-size: 1.4rem;
+	line-height: 1;
+	cursor: pointer;
+	color: #123326;
+}
+
+.applyForm {
+	display: grid;
+	gap: 14px;
+}
+
+.applyForm label {
+	display: grid;
+	gap: 6px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: rgba(18, 51, 38, 0.85);
+}
+
+.applyForm input,
+.applyForm textarea {
+	border-radius: 12px;
+	border: 1px solid rgba(18, 51, 38, 0.12);
+	padding: 10px 12px;
+	font-size: 0.95rem;
+	font-family: inherit;
+}
+
+.applyFormActions {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
+.applyFormError {
+	color: #b42318;
+	font-size: 0.9rem;
+	margin: 0;
+}
+
+.applySuccessMsg {
+	margin: 12px 0 0;
+	line-height: 1.6;
+	color: rgba(18, 51, 38, 0.8);
+}
+
 .modalBackdrop {
 	position: fixed;
 	inset: 0;

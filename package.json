@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "server": "cd server && node index.js",
+    "seed": "cd server && node seed.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

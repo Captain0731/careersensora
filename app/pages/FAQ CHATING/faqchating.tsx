@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { apiClient, ApiError } from '../../utils/apiClient';
 import './faqchating.scss';
 
 type Sender = 'user' | 'ai';
@@ -18,47 +19,9 @@ const suggestedQuestions = [
 	'Best skills for AI jobs?',
 ];
 
-const aiKnowledge: Array<{ keywords: string[]; answer: string }> = [
-	{
-		keywords: ['career', 'choose', 'best for me', 'domain'],
-		answer:
-			'Based on your goals, start by matching your strengths with a domain. If you enjoy building products end-to-end, Full Stack Development is a strong option. If you prefer analytics and prediction, Data Science or Machine Learning can be better.'
-	},
-	{
-		keywords: ['resume', 'cv'],
-		answer:
-			'To improve your resume, focus on measurable impact. Use bullet points with numbers, add 3 to 5 relevant projects, highlight job-specific skills, and keep formatting clean and one-page for early career roles.'
-	},
-	{
-		keywords: ['ai job', 'ai skills', 'artificial intelligence'],
-		answer:
-			'For AI jobs, prioritize Python, data structures, linear algebra, statistics, and deep learning fundamentals. Build practical projects in NLP or computer vision to demonstrate applied skills.'
-	},
-	{
-		keywords: ['interview', 'prepare'],
-		answer:
-			'Interview preparation works best with a weekly plan: core concepts revision, daily coding practice, mock interviews, and role-specific question sets. Record your answers to improve clarity and confidence.'
-	},
-	{
-		keywords: ['salary', 'package'],
-		answer:
-			'Salary depends on role, location, and project depth. Build a portfolio with strong outcomes and in-demand tools, then compare ranges across domains before deciding your next learning path.'
-	},
-];
 
 function formatTime(date: Date): string {
 	return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function generateAIResponse(question: string): string {
-	const normalized = question.toLowerCase();
-	const match = aiKnowledge.find((entry) => entry.keywords.some((word) => normalized.includes(word)));
-
-	if (match) {
-		return match.answer;
-	}
-
-	return 'I can help with career paths, resume improvement, AI skills, and interview preparation. Ask a more specific question and I will give a focused recommendation.';
 }
 
 export default function FaqChating() {
@@ -100,18 +63,33 @@ export default function FaqChating() {
 		setQuery('');
 		setIsTyping(true);
 
-		window.setTimeout(() => {
-			setMessages((prev) => [
-				...prev,
-				{
-					id: nextId.current++,
-					sender: 'ai',
-					text: generateAIResponse(value),
-					timestamp: formatTime(new Date()),
-				},
-			]);
-			setIsTyping(false);
-		}, 900);
+		(async () => {
+			try {
+				const response = await apiClient.post<{ reply: string }>('/faq-chat', { message: value }, { skipAuth: true });
+				setMessages((prev) => [
+					...prev,
+					{
+						id: nextId.current++,
+						sender: 'ai',
+						text: response.reply,
+						timestamp: formatTime(new Date()),
+					},
+				]);
+			} catch (err) {
+				const msg = err instanceof ApiError ? err.message : 'Could not reach AI assistant.';
+				setMessages((prev) => [
+					...prev,
+					{
+						id: nextId.current++,
+						sender: 'ai',
+						text: msg,
+						timestamp: formatTime(new Date()),
+					},
+				]);
+			} finally {
+				setIsTyping(false);
+			}
+		})();
 	};
 
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

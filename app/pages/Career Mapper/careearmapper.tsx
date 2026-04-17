@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiClient, ApiError } from '../../utils/apiClient';
+import { saveCareerMapperPayload } from '../../utils/careerMapperSession';
 import './careearmapper.scss';
 
 type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Advanced';
@@ -16,102 +18,71 @@ type CareerPath = {
 	roadmap: string[];
 };
 
-const baseSkills = [
-	'JavaScript',
-	'Python',
-	'React.js',
-	'Machine Learning',
-	'UI/UX Design',
-	'TypeScript',
-	'Node.js',
-	'SQL',
-	'Data Visualization',
-	'Product Thinking',
-	'Figma',
-	'Cloud Basics',
-];
+type CareerMapperConfig = {
+	base_skills: string[];
+	interests: { id: string }[];
+	experience_levels: string[];
+	career_paths: CareerPath[];
+};
 
-const interests = [
-	{ id: 'Problem Solving' },
-	{ id: 'Designing' },
-	{ id: 'Data Analysis' },
-	{ id: 'Building Applications' },
-	{ id: 'Research & Innovation' },
-];
-
-const experienceLevels: ExperienceLevel[] = ['Beginner', 'Intermediate', 'Advanced'];
-
-const careerPaths: CareerPath[] = [
-	{
-		id: 'frontend',
-		title: 'Frontend Engineer',
-		summary: 'Focus on building high-performance interfaces and delightful user experiences.',
-		skillMatches: ['JavaScript', 'React.js', 'TypeScript', 'UI/UX Design'],
-		interestMatches: ['Designing', 'Building Applications', 'Problem Solving'],
-		bestFor: ['Beginner', 'Intermediate', 'Advanced'],
-		roadmap: [
-			'Master modern HTML/CSS/JS foundations and component patterns.',
-			'Build 3 production-grade React projects with responsive design.',
-			'Learn testing, performance optimization, and accessibility.',
-			'Deploy portfolio projects and prepare for frontend system design.',
-		],
-	},
-	{
-		id: 'datascience',
-		title: 'Data Scientist',
-		summary: 'Turn raw data into actionable insights and predictive models.',
-		skillMatches: ['Python', 'SQL', 'Machine Learning', 'Data Visualization'],
-		interestMatches: ['Data Analysis', 'Problem Solving', 'Research & Innovation'],
-		bestFor: ['Intermediate', 'Advanced'],
-		roadmap: [
-			'Strengthen statistics, probability, and data cleaning workflows.',
-			'Practice end-to-end ML projects with real-world datasets.',
-			'Learn model evaluation, feature engineering, and experiment tracking.',
-			'Create business-focused case studies and storytelling dashboards.',
-		],
-	},
-	{
-		id: 'fullstack',
-		title: 'Full Stack Developer',
-		summary: 'Build complete products from frontend experiences to backend APIs.',
-		skillMatches: ['JavaScript', 'React.js', 'Node.js', 'SQL', 'Cloud Basics'],
-		interestMatches: ['Building Applications', 'Problem Solving', 'Research & Innovation'],
-		bestFor: ['Beginner', 'Intermediate', 'Advanced'],
-		roadmap: [
-			'Build API-driven apps with authentication and database support.',
-			'Learn backend architecture, caching, and API security patterns.',
-			'Deploy full stack projects using CI/CD and cloud tooling.',
-			'Practice scalable architecture and production debugging.',
-		],
-	},
-	{
-		id: 'ux',
-		title: 'UI/UX Product Designer',
-		summary: 'Design intuitive digital products backed by research and usability.',
-		skillMatches: ['UI/UX Design', 'Figma', 'Product Thinking', 'Data Visualization'],
-		interestMatches: ['Designing', 'Research & Innovation', 'Problem Solving'],
-		bestFor: ['Beginner', 'Intermediate', 'Advanced'],
-		roadmap: [
-			'Build strong design fundamentals: hierarchy, typography, and spacing.',
-			'Run user research and convert insights into wireframes and flows.',
-			'Create clickable prototypes and conduct usability testing.',
-			'Build portfolio case studies that show process and measurable impact.',
-		],
-	},
-];
+const emptyConfig: CareerMapperConfig = {
+	base_skills: [],
+	interests: [],
+	experience_levels: [],
+	career_paths: [],
+};
 
 export default function CareerMapper() {
 	const router = useRouter();
+	const [config, setConfig] = useState<CareerMapperConfig>(emptyConfig);
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [savingSkill, setSavingSkill] = useState(false);
+	const [skillSaveError, setSkillSaveError] = useState<string | null>(null);
+
 	const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 	const [skillQuery, setSkillQuery] = useState('');
 	const [customSkill, setCustomSkill] = useState('');
 	const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 	const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel | null>(null);
 
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			try {
+				const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config');
+				if (!cancelled) {
+					setConfig(data);
+					setLoadError(null);
+				}
+			} catch (err) {
+				if (!cancelled) {
+					const msg =
+						err instanceof ApiError
+							? err.message
+							: 'Could not load career data. Is the API running on port 8000?';
+					setLoadError(msg);
+					setConfig(emptyConfig);
+				}
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const baseSkills = config.base_skills;
+	const interests = config.interests;
+	const experienceLevels = config.experience_levels as ExperienceLevel[];
+
 	const allSkills = useMemo(() => {
 		const merged = [...baseSkills, ...selectedSkills];
 		return Array.from(new Set(merged));
-	}, [selectedSkills]);
+	}, [baseSkills, selectedSkills]);
 
 	const filteredSkills = useMemo(() => {
 		if (!skillQuery.trim()) {
@@ -133,22 +104,43 @@ export default function CareerMapper() {
 		setter([...current, value]);
 	};
 
-	const addCustomSkill = () => {
+	const addCustomSkill = async () => {
 		const nextSkill = customSkill.trim();
 		if (!nextSkill) {
 			return;
 		}
 
-		if (!selectedSkills.includes(nextSkill)) {
-			setSelectedSkills([...selectedSkills, nextSkill]);
+		setSkillSaveError(null);
+		setSavingSkill(true);
+		try {
+			await apiClient.post<{ name: string; created: boolean }>('/career-mapper/skills', { name: nextSkill });
+			const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config');
+			setConfig(data);
+			const savedName = data.base_skills.find((s) => s.toLowerCase() === nextSkill.toLowerCase()) ?? nextSkill;
+			if (!selectedSkills.includes(savedName)) {
+				setSelectedSkills([...selectedSkills, savedName]);
+			}
+			setCustomSkill('');
+		} catch (err) {
+			const msg =
+				err instanceof ApiError
+					? err.message
+					: 'Could not save skill. Is the API running on port 8000?';
+			setSkillSaveError(msg);
+		} finally {
+			setSavingSkill(false);
 		}
-		setCustomSkill('');
 	};
 
 	const generateCareerPath = () => {
 		if (!experienceLevel) {
 			return;
 		}
+		saveCareerMapperPayload({
+			skills: selectedSkills,
+			interests: selectedInterests,
+			experienceLevel,
+		});
 		router.push('/services/career-matching');
 	};
 
@@ -158,6 +150,8 @@ export default function CareerMapper() {
 				<p className="mapperKicker">Smart Career Discovery</p>
 				<h1>AI Career Mapper</h1>
 				<p>Discover the best career path tailored to your skills, interests, and experience.</p>
+				{loading ? <p className="mapperStatus">Loading career data…</p> : null}
+				{loadError ? <p className="mapperStatus mapperStatusError">{loadError}</p> : null}
 			</section>
 
 			<section className="mapperSteps">
@@ -174,6 +168,7 @@ export default function CareerMapper() {
 							onChange={(event) => setSkillQuery(event.target.value)}
 							placeholder="Search skills..."
 							aria-label="Search skills"
+							disabled={loading}
 						/>
 						<div className="customSkillRow">
 							<input
@@ -182,9 +177,13 @@ export default function CareerMapper() {
 								onChange={(event) => setCustomSkill(event.target.value)}
 								placeholder="Add custom skill"
 								aria-label="Add custom skill"
+								disabled={loading || savingSkill}
 							/>
-							<button type="button" onClick={addCustomSkill}>Add</button>
+							<button type="button" onClick={addCustomSkill} disabled={loading || savingSkill}>
+								{savingSkill ? 'Saving…' : 'Add'}
+							</button>
 						</div>
+						{skillSaveError ? <p className="mapperStatus mapperStatusError">{skillSaveError}</p> : null}
 					</div>
 
 					<div className="chipGrid">
@@ -194,6 +193,7 @@ export default function CareerMapper() {
 								type="button"
 								className={selectedSkills.includes(skill) ? 'chip active' : 'chip'}
 								onClick={() => toggleSelection(skill, selectedSkills, setSelectedSkills)}
+								disabled={loading}
 							>
 								{skill}
 							</button>
@@ -216,6 +216,7 @@ export default function CareerMapper() {
 									type="button"
 									className={active ? 'interestCard active' : 'interestCard'}
 									onClick={() => toggleSelection(interest.id, selectedInterests, setSelectedInterests)}
+									disabled={loading}
 								>
 									<strong>{interest.id}</strong>
 								</button>
@@ -236,7 +237,8 @@ export default function CareerMapper() {
 								key={level}
 								type="button"
 								className={experienceLevel === level ? 'levelCard active' : 'levelCard'}
-								onClick={() => setExperienceLevel(level)}
+								onClick={() => setExperienceLevel(level as ExperienceLevel)}
+								disabled={loading}
 							>
 								<span className={`levelDot ${level.toLowerCase()}`} aria-hidden="true" />
 								<strong>{level}</strong>
@@ -247,11 +249,10 @@ export default function CareerMapper() {
 			</section>
 
 			<div className="generateBar">
-				<button type="button" className="generateBtn" onClick={generateCareerPath} disabled={!canGenerate}>
+				<button type="button" className="generateBtn" onClick={generateCareerPath} disabled={!canGenerate || loading}>
 					Generate Career Path
 				</button>
 			</div>
-
 		</main>
 	);
 }

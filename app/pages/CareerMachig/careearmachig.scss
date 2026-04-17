@@ -133,6 +133,23 @@
 	color: #1c5a40;
 }
 
+.metricGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	background: rgba(46, 196, 106, 0.08);
+	border: 1px solid rgba(20, 58, 42, 0.12);
+	border-radius: 14px;
+	padding: 10px;
+}
+
+.metricGrid p {
+	margin: 0;
+	font-size: 0.84rem;
+	line-height: 1.45;
+	color: rgba(20, 58, 42, 0.88);
+}
+
 .whyTitle {
 	margin: 0;
 	font-size: 0.82rem;
@@ -147,6 +164,17 @@
 	line-height: 1.55;
 	font-size: 0.96rem;
 	color: rgba(20, 58, 42, 0.82);
+}
+
+.skillRows {
+	display: grid;
+	gap: 8px;
+}
+
+.skillRows p {
+	margin: 0;
+	font-size: 0.88rem;
+	color: rgba(20, 58, 42, 0.86);
 }
 
 .roadmapHint {
@@ -172,5 +200,9 @@
 	.careerCard {
 		padding: 16px;
 		border-radius: 18px;
+	}
+
+	.metricGrid {
+		grid-template-columns: 1fr;
 	}
 }

@@ -1,35 +1,100 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ApiError, apiClient } from '../../utils/apiClient';
 import './jobdetail.scss';
 
-const job = {
-	title: 'Frontend Developer (React.js)',
-	company: 'TechNova Pvt Ltd',
-	location: 'Remote / Ahmedabad',
-	salary: '₹6–10 LPA',
-	experience: '1–3 Years',
-	tags: ['React.js', 'Next.js', 'TypeScript', 'REST APIs'],
-	responsibilities: [
-		'Build modern, scalable web applications using React.js and Next.js',
-		'Develop reusable UI components',
-		'Integrate REST APIs',
-		'Optimize performance and responsiveness',
-	],
-	requirements: [
-		'Strong knowledge of JavaScript and React.js',
-		'Experience with Next.js',
-		'Understanding of API integration',
-		'Basic knowledge of Git',
-	],
-	niceToHave: [
-		'Experience with TypeScript',
-		'Knowledge of UI/UX principles',
-	],
+type JobDetail = {
+	id: string;
+	title: string;
+	company: string;
+	location: string;
+	salary: string;
+	experience: string;
+	skills: string[];
+	description: string;
+	responsibilities: string[];
+	requirements: string[];
+	niceToHave: string[];
 };
+
+const DEFAULT_JOB_ID = '';
 
 export default function Jobdetail() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const [job, setJob] = useState<JobDetail | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const jobId = useMemo(() => {
+		const raw = searchParams.get('id');
+		return raw || DEFAULT_JOB_ID;
+	}, [searchParams]);
+
+	useEffect(() => {
+		let ignore = false;
+
+		const loadJobDetail = async () => {
+			setLoading(true);
+			setError(null);
+			try {
+				const data = await apiClient.get<JobDetail>(`/jobs/${jobId}`, { skipAuth: true });
+				if (!ignore) {
+					setJob(data);
+				}
+			} catch (err) {
+				if (ignore) {
+					return;
+				}
+				const message =
+					err instanceof ApiError
+						? err.message
+						: err instanceof Error
+							? err.message
+							: 'Unable to load job details.';
+				setError(message);
+				setJob(null);
+			} finally {
+				if (!ignore) {
+					setLoading(false);
+				}
+			}
+		};
+
+		loadJobDetail();
+
+		return () => {
+			ignore = true;
+		};
+	}, [jobId]);
+
+	if (loading) {
+		return (
+			<main className="jobDetailPage">
+				<section className="jobDetailCard" aria-label="Job details">
+					<p className="headingKicker">Job Detail</p>
+					<h1>Loading job details...</h1>
+				</section>
+			</main>
+		);
+	}
+
+	if (!job || error) {
+		return (
+			<main className="jobDetailPage">
+				<section className="jobDetailCard" aria-label="Job details">
+					<p className="headingKicker">Job Detail</p>
+					<h1>Job not available</h1>
+					<p className="companyName">{error ?? 'No job found for this id.'}</p>
+					<button type="button" className="applyButton" onClick={() => router.push('/job-apply')}>
+						Back to jobs
+					</button>
+				</section>
+			</main>
+		);
+	}
 
 	return (
 		<main className="jobDetailPage">
@@ -46,38 +111,39 @@ export default function Jobdetail() {
 				</header>
 
 				<div className="tagsRow" aria-label="Job skills">
-					{job.tags.map((tag) => (
+					{job.skills.map((tag) => (
 						<span key={tag}>{tag}</span>
 					))}
 				</div>
 
 				<section className="contentSection" aria-label="Job description">
 					<h2>Job Description</h2>
+					<p className="descriptionText">{job.description || 'Description not added by recruiter yet.'}</p>
 
 					<div className="listBlock">
 						<h3>Responsibilities:</h3>
 						<ul>
-							{job.responsibilities.map((item) => (
+							{job.responsibilities.length > 0 ? job.responsibilities.map((item) => (
 								<li key={item}>{item}</li>
-							))}
+							)) : <li>Not added by recruiter yet.</li>}
 						</ul>
 					</div>
 
 					<div className="listBlock">
 						<h3>Requirements:</h3>
 						<ul>
-							{job.requirements.map((item) => (
+							{job.requirements.length > 0 ? job.requirements.map((item) => (
 								<li key={item}>{item}</li>
-							))}
+							)) : <li>Not added by recruiter yet.</li>}
 						</ul>
 					</div>
 
 					<div className="listBlock">
 						<h3>Nice to Have:</h3>
 						<ul>
-							{job.niceToHave.map((item) => (
+							{job.niceToHave.length > 0 ? job.niceToHave.map((item) => (
 								<li key={item}>{item}</li>
-							))}
+							)) : <li>Not added by recruiter yet.</li>}
 						</ul>
 					</div>
 				</section>
@@ -88,7 +154,11 @@ export default function Jobdetail() {
 						<strong>{job.experience}</strong>
 					</div>
 
-					<button type="button" className="applyButton" onClick={() => router.push('/job-application')}>
+					<button
+						type="button"
+						className="applyButton"
+						onClick={() => router.push(`/job-application?jobId=${job.id}`)}
+					>
 						Apply Now
 					</button>
 				</section>

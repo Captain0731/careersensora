@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ApiError, apiClient } from '../../utils/apiClient';
 import Resumechecker from '../Job Resume Analysis/resumechecker';
 import './jobfrom.scss';
 
@@ -13,6 +15,12 @@ type UserProfile = {
 	skills: string[];
 };
 
+type JobSummary = {
+	id: string;
+	title: string;
+	company: string;
+};
+
 const STORAGE_KEY = 'hireonix-user-profile';
 
 const defaultProfile: UserProfile = {
@@ -23,7 +31,12 @@ const defaultProfile: UserProfile = {
 };
 
 export default function Jobfrom() {
+	const searchParams = useSearchParams();
+	const selectedJobId = searchParams.get('jobId') || searchParams.get('id');
+	const hasValidJobId = !!selectedJobId;
+
 	const [isLoading, setIsLoading] = useState(true);
+	const [jobLoading, setJobLoading] = useState(false);
 	const [fullName, setFullName] = useState('');
 	const [email, setEmail] = useState('');
 	const [phone, setPhone] = useState('');
@@ -36,6 +49,10 @@ export default function Jobfrom() {
 	const [newSkill, setNewSkill] = useState('');
 	const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
 	const [submitFeedback, setSubmitFeedback] = useState('');
+	const [submitError, setSubmitError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [selectedJob, setSelectedJob] = useState<JobSummary | null>(null);
+	const [applicationId, setApplicationId] = useState<string | null>(null);
 
 	useEffect(() => {
 		const loadProfile = () => {
@@ -68,6 +85,40 @@ export default function Jobfrom() {
 		return () => window.clearTimeout(timer);
 	}, []);
 
+	useEffect(() => {
+		let ignore = false;
+		const loadJob = async () => {
+			setJobLoading(true);
+			try {
+				if (hasValidJobId) {
+					const job = await apiClient.get<JobSummary>(`/jobs/${selectedJobId}`, { skipAuth: true });
+					if (!ignore) {
+						setSelectedJob(job);
+					}
+					return;
+				}
+
+				const list = await apiClient.get<{ jobs: JobSummary[] }>('/jobs/', { skipAuth: true });
+				if (!ignore) {
+					setSelectedJob((list.jobs && list.jobs.length > 0) ? list.jobs[0] : null);
+				}
+			} catch {
+				if (!ignore) {
+					setSelectedJob(null);
+				}
+			} finally {
+				if (!ignore) {
+					setJobLoading(false);
+				}
+			}
+		};
+
+		loadJob();
+		return () => {
+			ignore = true;
+		};
+	}, [hasValidJobId, selectedJobId]);
+
 	const normalizedSkills = useMemo(() => skills.map((skill) => skill.trim()).filter(Boolean), [skills]);
 
 	const addSkill = () => {
@@ -89,8 +140,16 @@ export default function Jobfrom() {
 		setSkills((current) => current.filter((skill) => skill !== skillToRemove));
 	};
 
-	const submitApplication = (event: FormEvent<HTMLFormElement>) => {
+	const submitApplication = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
+		setSubmitFeedback('');
+		setSubmitError('');
+		setApplicationId(null);
+
+		if (!selectedJob) {
+			setSubmitError('No open jobs available right now.');
+			return;
+		}
 
 		const profile: UserProfile = {
 			fullName,
@@ -100,12 +159,43 @@ export default function Jobfrom() {
 		};
 
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-		setSubmitFeedback('Application submitted. Opening resume analysis...');
 
-		// Keep popup opening reliable even when many state updates happen together.
-		window.requestAnimationFrame(() => {
-			setIsResumeModalOpen(true);
-		});
+		const messageParts = [
+			`Degree: ${degree.trim()}`,
+			`College: ${college.trim()}`,
+			`Passing Year: ${passYear.trim()}`,
+			`Experience Level: ${experienceLevel}`,
+			`Previous Company: ${(previousCompany || 'N/A').trim()}`,
+			`Skills: ${normalizedSkills.join(', ') || 'N/A'}`,
+		];
+
+		setIsSubmitting(true);
+		try {
+			const response = await apiClient.post<{ ok: boolean; application_id: string }>(
+				'/jobs/apply',
+				{
+					job_id: selectedJob.id,
+					full_name: fullName.trim(),
+					email: email.trim(),
+					phone: phone.trim(),
+					message: messageParts.join('\n'),
+				},
+				{ skipAuth: true }
+			);
+
+			if (response.ok) {
+				setApplicationId(response.application_id);
+				setSubmitFeedback(`Application submitted for ${selectedJob.title}. Ref #${response.application_id}`);
+				window.requestAnimationFrame(() => {
+					setIsResumeModalOpen(true);
+				});
+			}
+		} catch (err) {
+			const msg = err instanceof ApiError ? err.message : 'Could not submit application.';
+			setSubmitError(msg);
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	if (isLoading) {
@@ -124,6 +214,9 @@ export default function Jobfrom() {
 				<header className="formHeader">
 					<h1>Complete Your Application</h1>
 					<p>Review your details and submit your application.</p>
+					{jobLoading ? <p>Loading selected job...</p> : null}
+					{selectedJob ? <p>Applying for: {selectedJob.title} at {selectedJob.company}</p> : null}
+					{!jobLoading && !selectedJob ? <p>No open jobs available for applying right now.</p> : null}
 				</header>
 
 				<form className="applicationForm" onSubmit={submitApplication}>
@@ -224,19 +317,24 @@ export default function Jobfrom() {
 					</section>
 
 					<div className="submitRow">
-						<button type="submit" className="applyNowButton">Submit Application</button>
+						<button type="submit" className="applyNowButton" disabled={isSubmitting || jobLoading || !selectedJob}>
+							{isSubmitting ? 'Submitting...' : 'Submit Application'}
+						</button>
 					</div>
 				</form>
 
+				{submitError ? <p className="statusMessage" style={{ color: '#b42318' }}>{submitError}</p> : null}
 				{submitFeedback ? <p className="statusMessage">{submitFeedback}</p> : null}
 			</section>
 
 			<Resumechecker
 				isOpen={isResumeModalOpen}
+				applicationId={applicationId}
 				candidateSkills={normalizedSkills}
 				onClose={() => {
 					setIsResumeModalOpen(false);
 					setSubmitFeedback('');
+					setApplicationId(null);
 				}}
 			/>
 		</main>

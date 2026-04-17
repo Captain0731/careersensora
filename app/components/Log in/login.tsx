@@ -2,43 +2,76 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { apiClient, ApiError, TOKEN_KEY } from '../../utils/apiClient';
+import { USER_PROFILE_KEY } from '../../utils/session';
 import './login.scss';
-
-const ADMIN_EMAIL = 'admin@careerai.com';
-const ADMIN_PASSWORD = 'Admin@123';
 
 export default function Login() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const mode = searchParams.get('mode') === 'recruiter' ? 'recruiter' : 'main';
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 
 	useEffect(() => {
-		const existingSession = window.localStorage.getItem('hireonix-admin-auth');
-		if (existingSession === 'true') {
-			router.replace('/recruiter-job-dashboard');
+		const existingSession = window.localStorage.getItem(TOKEN_KEY);
+		if (existingSession) {
+			void (async () => {
+				try {
+					const profile = await apiClient.get<{ is_recruiter: boolean }>('/auth/me');
+					router.replace(profile.is_recruiter ? '/recruiter-job-dashboard' : '/');
+				} catch {
+					router.replace('/');
+				}
+			})();
 		}
 	}, [router]);
 
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		setError('');
 		setIsLoading(true);
 
-		window.setTimeout(() => {
-			const isValid = email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+		try {
+			const endpoint = mode === 'recruiter' ? '/auth/recruiter-login' : '/auth/login';
+			const res = await apiClient.post<{ token: string; username: string }>(endpoint, {
+				username: email.trim(),
+				password,
+			});
+			window.localStorage.setItem(TOKEN_KEY, res.token);
+			const profile = await apiClient.get<{
+				username: string;
+				email: string;
+				phone: string;
+				first_name: string;
+				last_name: string;
+				is_recruiter: boolean;
+			}>('/auth/me');
 
-			if (!isValid) {
-				setError('Invalid credentials. Please try again.');
-				setIsLoading(false);
-				return;
+			window.localStorage.setItem(
+				USER_PROFILE_KEY,
+				JSON.stringify({
+					username: profile.username,
+					phone: profile.phone,
+					fullName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username,
+					isRecruiter: profile.is_recruiter,
+				})
+			);
+
+			// Always redirect recruiters to the dashboard, regardless of login mode
+			router.replace(profile.is_recruiter ? '/recruiter-job-dashboard' : '/');
+		} catch (err) {
+			if (err instanceof ApiError) {
+				setError(err.message || 'Invalid credentials. Please try again.');
+			} else {
+				setError('An unexpected error occurred.');
 			}
-
-			window.localStorage.setItem('hireonix-admin-auth', 'true');
-			router.replace('/recruiter-job-dashboard');
-		}, 450);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -48,42 +81,44 @@ export default function Login() {
 
 			<div className="loginShell">
 				<div className="loginCopy">
-					<p className="eyebrow">Hireonix Admin Access</p>
-					<h1>Admin Login</h1>
+						<p className="eyebrow">Hireonix Access</p>
+						<h1>{mode === 'recruiter' ? 'Recruiter Login' : 'Login'}</h1>
 					<p className="headline">
-						Enter your credentials to access the recruiter dashboard.
+						{mode === 'recruiter'
+							? 'Enter recruiter credentials to access the job dashboard.'
+								: 'Enter your credentials to access your account and saved profile.'}
 					</p>
 
 					<div className="featureGrid">
 						<div className="featureCard">
-							<strong>Authorized only</strong>
-							<span>Recruiter dashboard access is restricted</span>
+							<strong>{mode === 'recruiter' ? 'Authorized only' : 'Profile access'}</strong>
+							<span>{mode === 'recruiter' ? 'Recruiter dashboard access is restricted' : 'Your name and phone appear in the navbar'}</span>
 						</div>
 						<div className="featureCard">
-							<strong>Fast login</strong>
-							<span>Quick access with verified admin credentials</span>
+							<strong>{mode === 'recruiter' ? 'Fast login' : 'Quick login'}</strong>
+							<span>{mode === 'recruiter' ? 'Quick access with verified recruiter credentials' : 'Sign in to keep your account ready'}</span>
 						</div>
 						<div className="featureCard">
-							<strong>Recruiter tools</strong>
-							<span>Manage jobs and candidates securely</span>
+							<strong>{mode === 'recruiter' ? 'Recruiter tools' : 'Main web tools'}</strong>
+							<span>{mode === 'recruiter' ? 'Manage jobs and candidates securely' : 'Use AI tools and job services across the site'}</span>
 						</div>
 					</div>
 				</div>
 
 				<div className="loginCard">
 					<div className="cardHeader">
-						<h2>Admin Login</h2>
-						<p>Enter admin ID and password to continue.</p>
+						<h2>{mode === 'recruiter' ? 'Recruiter Login' : 'Login'}</h2>
+						<p>{mode === 'recruiter' ? 'Enter recruiter ID and password to continue.' : 'Enter your username or email and password.'}</p>
 					</div>
 
 					<form className="loginForm" onSubmit={handleSubmit}>
 						<label>
-							Admin ID / Email
+							{mode === 'recruiter' ? 'Admin ID / Email' : 'Username / Email'}
 							<input
-								type="email"
+								type="text"
 								value={email}
 								onChange={(event) => setEmail(event.target.value)}
-								placeholder="admin@careerai.com"
+								placeholder={mode === 'recruiter' ? 'admin@careerai.com' : 'you@example.com'}
 								required
 							/>
 						</label>
@@ -100,8 +135,14 @@ export default function Login() {
 						</label>
 
 						<button className="primaryBtn" type="submit" disabled={isLoading}>
-							{isLoading ? 'Logging in...' : 'Login'}
+							{isLoading ? 'Logging in...' : mode === 'recruiter' ? 'Login to dashboard' : 'Login'}
 						</button>
+
+						{mode !== 'recruiter' ? (
+							<Link className="secondaryBtn" href="/sign-up">
+								Sign up
+							</Link>
+						) : null}
 					</form>
 
 					{error && <p className="errorMessage">{error}</p>}
@@ -120,7 +161,15 @@ export default function Login() {
 					</div>
 
 					<p className="footerText">
-						Need a recruiter account? <Link href="/sign-up">Sign up</Link>
+						{mode === 'recruiter' ? (
+							<>
+								Need main access? <Link href="/get-access">User login</Link>
+							</>
+						) : (
+							<>
+								Need a recruiter account? <Link href="/get-access?mode=recruiter">Recruiter login</Link>
+							</>
+						)}
 					</p>
 				</div>
 			</div>

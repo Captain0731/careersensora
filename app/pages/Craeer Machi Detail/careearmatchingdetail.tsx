@@ -1,5 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ApiError, apiClient } from '../../utils/apiClient';
+import {
+	readCareerMapperPayload,
+	readCareerMatches,
+	type StoredCareerMatch,
+} from '../../utils/careerMapperSession';
 import './careermatchingdetails.scss';
 
 type CareerDetail = {
@@ -19,90 +27,160 @@ type CareerDetail = {
 	missingSkills: string[];
 };
 
-const careerDetails: CareerDetail[] = [
-	{
-		id: 'fullstack',
-		title: 'Full Stack Developer',
-		matchScore: 87,
-		successProbability: 78,
-		selectedSkills: ['React.js', 'JavaScript', 'HTML/CSS'],
-		salaryInsight: '₹8–15 LPA',
-		growthPotential: 'High',
-		jobAvailability: 'High Demand',
-		availabilityHint: 'Number of openings increasing',
-		nextSkills: ['Node.js', 'System Design', 'Database Management'],
-		learningSpeed: 'Fast',
-		improvementRate: '+20% potential',
-		successFactors: ['Skills', 'Interest', 'Market demand'],
-		missingSkills: ['Backend Development', 'API Integration', 'Deployment'],
-	},
-	{
-		id: 'frontend',
-		title: 'Frontend Engineer',
-		matchScore: 84,
-		successProbability: 75,
-		selectedSkills: ['React.js', 'TypeScript', 'Responsive UI'],
-		salaryInsight: '₹7–13 LPA',
-		growthPotential: 'High',
-		jobAvailability: 'High Demand',
-		availabilityHint: 'Remote opportunities are growing',
-		nextSkills: ['Accessibility', 'Performance Optimization', 'Testing'],
-		learningSpeed: 'Fast',
-		improvementRate: '+18% potential',
-		successFactors: ['Skills', 'Interest', 'Portfolio quality'],
-		missingSkills: ['Advanced testing', 'Architecture patterns', 'SEO optimization'],
-	},
-	{
-		id: 'product-designer',
-		title: 'UI/UX Product Designer',
-		matchScore: 72,
-		successProbability: 69,
-		selectedSkills: ['Design Systems', 'Figma', 'User Flows'],
-		salaryInsight: '₹6–12 LPA',
-		growthPotential: 'Medium to High',
-		jobAvailability: 'Steady Demand',
-		availabilityHint: 'Openings rising in product-led teams',
-		nextSkills: ['UX Research', 'Interaction Design', 'Design Strategy'],
-		learningSpeed: 'Moderate',
-		improvementRate: '+16% potential',
-		successFactors: ['User empathy', 'Design execution', 'Product understanding'],
-		missingSkills: ['Research depth', 'Analytics interpretation', 'Cross-team communication'],
-	},
-	{
-		id: 'data-analyst',
-		title: 'Data Analyst',
-		matchScore: 66,
-		successProbability: 64,
-		selectedSkills: ['SQL Basics', 'Data Visualization', 'Python'],
-		salaryInsight: '₹5–10 LPA',
-		growthPotential: 'Medium',
-		jobAvailability: 'Growing Demand',
-		availabilityHint: 'Analytics roles expanding across industries',
-		nextSkills: ['Advanced SQL', 'Dashboard Storytelling', 'Business Analytics'],
-		learningSpeed: 'Moderate',
-		improvementRate: '+14% potential',
-		successFactors: ['Data skills', 'Business context', 'Communication'],
-		missingSkills: ['Statistical modeling', 'Data cleaning depth', 'Domain specialization'],
-	},
-];
-
 type CareerMatchingDetailProps = {
 	selectedCareerId?: string;
 };
 
-export default function CareerMatchingDetail({ selectedCareerId = 'fullstack' }: CareerMatchingDetailProps) {
-	const detail = careerDetails.find((item) => item.id === selectedCareerId) ?? careerDetails[0];
+export default function CareerMatchingDetail({ selectedCareerId }: CareerMatchingDetailProps) {
+	const searchParams = useSearchParams();
+	const careerFromUrl = searchParams.get('career') ?? undefined;
+	const careerId = selectedCareerId ?? careerFromUrl;
+
+	const [detail, setDetail] = useState<CareerDetail | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const snapshot = useMemo(() => {
+		if (!careerId) return null;
+		const payload = readCareerMapperPayload();
+		const matches = readCareerMatches();
+		if (!payload || !matches?.length) return null;
+		const match = matches.find((m) => m.id === careerId) ?? null;
+		return { payload, match };
+	}, [careerId]);
+
+	useEffect(() => {
+		if (!careerId) {
+			setLoading(false);
+			setError('No career selected. Go back to Career Mapper and generate matches first.');
+			return;
+		}
+
+		const payload = readCareerMapperPayload();
+		const matches = readCareerMatches();
+		if (!payload || !matches?.length) {
+			setLoading(false);
+			setError(
+				'Session data not found. Open Career Mapper, select skills and interests, generate matches, then open this page again.'
+			);
+			return;
+		}
+
+		const match = matches.find((m: StoredCareerMatch) => m.id === careerId);
+		if (!match) {
+			setLoading(false);
+			setError(`No saved match for “${careerId}”. Return to the matching page and click a card again.`);
+			return;
+		}
+
+		let cancelled = false;
+		(async () => {
+			setLoading(true);
+			setError(null);
+			try {
+				const result = await apiClient.post<CareerDetail>(
+					'/career-mapper/detail',
+					{
+						skills: payload.skills,
+						interests: payload.interests,
+						experienceLevel: payload.experienceLevel,
+						careerId: match.id,
+						title: match.title,
+						matchScore: match.matchScore,
+						successProbability: match.successProbability,
+						fitReason: match.fitReason,
+						roadmapHint: match.roadmapHint,
+						nextBestSkillsToLearn: match.nextBestSkillsToLearn,
+						missingSkills: match.missingSkills,
+						languageChoice: match.languageChoice,
+					},
+					{ skipAuth: true }
+				);
+				if (!cancelled) {
+					setDetail(result);
+				}
+			} catch (err) {
+				if (!cancelled) {
+					const msg = err instanceof ApiError ? err.message : 'Could not load AI career detail.';
+					setError(msg);
+					setDetail({
+						id: match.id,
+						title: match.title,
+						matchScore: match.matchScore,
+						successProbability: match.successProbability,
+						selectedSkills: payload.skills,
+						salaryInsight: match.salaryInsights,
+						growthPotential: 'See roadmap and next skills below.',
+						jobAvailability: match.jobAvailability,
+						availabilityHint: 'Demand varies by region; portfolio quality matters most.',
+						nextSkills: match.nextBestSkillsToLearn,
+						learningSpeed: 'Depends on weekly practice consistency.',
+						improvementRate: match.skillBasedImprovementRate,
+						successFactors: ['Your selected skills', 'Your interests', 'Market demand'],
+						missingSkills: match.missingSkills,
+					});
+				}
+			} finally {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [careerId]);
 
 	const downloadReport = () => {
 		window.print();
 	};
 
+	if (loading) {
+		return (
+			<main className="careerDetailPage">
+				<section className="detailHero">
+					<p className="detailKicker">AI Career Analysis Dashboard</p>
+					<h1>Loading your report…</h1>
+					<p>Generating insights with Groq AI using your selected profile.</p>
+				</section>
+			</main>
+		);
+	}
+
+	if (error && !detail) {
+		return (
+			<main className="careerDetailPage">
+				<section className="detailHero">
+					<p className="detailKicker">AI Career Analysis Dashboard</p>
+					<h1>Could not load detail</h1>
+					<p>{error}</p>
+				</section>
+			</main>
+		);
+	}
+
+	if (!detail) {
+		return null;
+	}
+
 	return (
 		<main className="careerDetailPage">
+			{error ? (
+				<section className="detailHero" style={{ marginBottom: 12 }}>
+					<p style={{ color: '#b45309', fontSize: '0.95rem' }}>{error} Showing saved card data where needed.</p>
+				</section>
+			) : null}
+
 			<section className="detailHero">
 				<p className="detailKicker">AI Career Analysis Dashboard</p>
 				<h1>Career Analysis: {detail.title}</h1>
-				<p>Detailed insights based on your profile and AI analysis.</p>
+				<p>Detailed insights based on your selected skills, interests, and Groq AI analysis.</p>
+				{snapshot?.match?.successTrack ? (
+					<p style={{ marginTop: 8, fontSize: '0.95rem', color: 'rgba(20, 58, 42, 0.75)' }}>
+						<strong>Success track:</strong> {snapshot.match.successTrack}
+					</p>
+				) : null}
 			</section>
 
 			<section className="scorePanel">

@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from 'react';
+import { ApiError, apiClient } from '../../utils/apiClient';
 import './resumeaenalisis.scss';
 
 type AnalysisResult = {
+	ok: boolean;
+	analysis_id: string;
 	score: number;
 	atsScore: number;
 	strengths: string[];
@@ -13,63 +16,12 @@ type AnalysisResult = {
 	missingKeywords: string[];
 };
 
-const KEYWORDS = ['react', 'nextjs', 'typescript', 'node', 'python', 'sql', 'docker', 'aws', 'api', 'testing'];
-
-const getSeed = (text: string) =>
-	text.split('').reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 1), 0);
-
-const seededValue = (seed: number, min: number, max: number, offset: number) => {
-	const range = max - min + 1;
-	return min + ((seed + offset * 97) % range);
-};
-
-const buildAnalysis = (file: File): AnalysisResult => {
-	const lowerName = file.name.toLowerCase();
-	const seed = getSeed(lowerName);
-
-	const extractedSkills = KEYWORDS.filter((keyword) => lowerName.includes(keyword));
-	const missingKeywords = KEYWORDS.filter((keyword) => !extractedSkills.includes(keyword)).slice(0, 4);
-
-	const baseScore = seededValue(seed, 68, 88, 1);
-	const keywordBonus = Math.min(10, extractedSkills.length * 2);
-	const score = Math.min(96, baseScore + keywordBonus);
-	const atsScore = Math.min(98, seededValue(seed, 64, 86, 2) + keywordBonus);
-
-	const strengths = [
-		extractedSkills.length >= 4 ? 'Strong technical skill coverage for modern roles' : 'Good technical base with relevant capabilities',
-		score >= 80 ? 'Resume appears structured and readable' : 'Resume has foundational structure that can be improved',
-		'Clear potential for ATS optimization',
-	];
-
-	const weaknesses = [
-		missingKeywords.length ? `Missing high-value keywords: ${missingKeywords.join(', ')}` : 'Few keyword gaps detected',
-		score < 78 ? 'Impact statements need stronger quantifiable outcomes' : 'Project outcomes can be made more measurable',
-		'Formatting consistency can be refined for faster scanning',
-	];
-
-	const suggestions = [
-		'Add measurable project and work achievements with numbers.',
-		'Align skills and summary with your target job title keywords.',
-		'Use consistent section hierarchy and concise bullet points.',
-		'Keep resume within 1 to 2 pages and remove unrelated content.',
-	];
-
-	return {
-		score,
-		atsScore,
-		strengths,
-		weaknesses,
-		suggestions,
-		extractedSkills: extractedSkills.length ? extractedSkills : ['javascript', 'communication', 'problem solving'],
-		missingKeywords,
-	};
-};
-
 export default function ResumeAnalysis() {
 	const [file, setFile] = useState<File | null>(null);
 	const [dragActive, setDragActive] = useState(false);
 	const [analyzing, setAnalyzing] = useState(false);
 	const [result, setResult] = useState<AnalysisResult | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
 	const canAnalyze = useMemo(() => Boolean(file) && !analyzing, [file, analyzing]);
 
@@ -80,6 +32,7 @@ export default function ResumeAnalysis() {
 
 		setFile(nextFile);
 		setResult(null);
+		setError(null);
 	};
 
 	const handleDrop = (event: React.DragEvent<HTMLLabelElement>) => {
@@ -88,16 +41,29 @@ export default function ResumeAnalysis() {
 		onFileSelected(event.dataTransfer.files?.[0]);
 	};
 
-	const analyzeResume = () => {
+	const analyzeResume = async () => {
 		if (!file || analyzing) {
 			return;
 		}
 
 		setAnalyzing(true);
-		setTimeout(() => {
-			setResult(buildAnalysis(file));
+		setError(null);
+		try {
+			const formData = new FormData();
+			formData.append('candidate_skills', JSON.stringify([]));
+			formData.append('resume', file);
+
+			const analyzed = await apiClient.post<AnalysisResult>('/jobs/resume-analysis', formData, {
+				skipAuth: true,
+			});
+			setResult(analyzed);
+		} catch (err) {
+			const msg = err instanceof ApiError ? err.message : 'Could not analyze resume right now.';
+			setError(msg);
+			setResult(null);
+		} finally {
 			setAnalyzing(false);
-		}, 1500);
+		}
 	};
 
 	return (
@@ -168,6 +134,7 @@ export default function ResumeAnalysis() {
 				<button className="analyzeBtn" type="button" onClick={analyzeResume} disabled={!canAnalyze}>
 					{analyzing ? 'Analyzing Resume...' : 'Analyze Resume'}
 				</button>
+				{error ? <p className="analysisError">{error}</p> : null}
 			</section>
 
 			{result ? (

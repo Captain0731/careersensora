@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiClient, ApiError } from '../utils/apiClient';
+import { TOKEN_KEY } from '../utils/session';
 import JobDashbord from '../components/Job Dashbord/jobdashbord';
 
 export default function RecruiterJobDashboardPage() {
@@ -9,13 +11,39 @@ export default function RecruiterJobDashboardPage() {
 	const [isAuthorized, setIsAuthorized] = useState(false);
 
 	useEffect(() => {
-		const adminAuth = window.localStorage.getItem('hireonix-admin-auth');
-		if (adminAuth !== 'true') {
-			router.replace('/get-access');
+		const token = window.localStorage.getItem(TOKEN_KEY);
+		if (!token?.trim()) {
+			router.replace('/get-access?mode=recruiter');
 			return;
 		}
 
-		setIsAuthorized(true);
+		let cancelled = false;
+		(async () => {
+			try {
+				const me = await apiClient.get<{ is_recruiter: boolean }>('/auth/me');
+				if (cancelled) {
+					return;
+				}
+				if (!me.is_recruiter) {
+					window.localStorage.removeItem(TOKEN_KEY);
+					router.replace('/get-access?mode=recruiter');
+					return;
+				}
+				setIsAuthorized(true);
+			} catch (err) {
+				if (cancelled) {
+					return;
+				}
+				if (err instanceof ApiError) {
+					window.localStorage.removeItem(TOKEN_KEY);
+				}
+				router.replace('/get-access?mode=recruiter');
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [router]);
 
 	if (!isAuthorized) {

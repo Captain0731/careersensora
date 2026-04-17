@@ -32,6 +32,35 @@ const getCareerConfig = async (req, res) => {
     }
 };
 
+// @desc    Add a custom skill for career mapper
+// @route   POST /api/v1/career-mapper/skills
+const addCareerSkill = async (req, res) => {
+    const rawName = typeof req.body?.name === 'string' ? req.body.name : '';
+    const name = rawName.trim();
+
+    if (!name) {
+        return res.status(400).json({ detail: 'Skill name is required' });
+    }
+
+    try {
+        const existing = await Skill.findOne({ name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+        if (existing) {
+            return res.status(200).json({ name: existing.name, created: false });
+        }
+
+        const last = await Skill.findOne().sort({ sortOrder: -1, _id: -1 }).lean();
+        const created = await Skill.create({
+            name,
+            sortOrder: typeof last?.sortOrder === 'number' ? last.sortOrder + 1 : 1,
+            isBase: false,
+        });
+
+        return res.status(201).json({ name: created.name, created: true });
+    } catch (error) {
+        return res.status(500).json({ detail: error.message });
+    }
+};
+
 // Helper for AI JSON parsing
 const parseAIJSON = (text) => {
     let raw = (text || "").trim();
@@ -141,4 +170,4 @@ const getCareerDetail = async (req, res) => {
     }
 };
 
-module.exports = { getCareerConfig, generateMatches, getCareerDetail };
+module.exports = { getCareerConfig, addCareerSkill, generateMatches, getCareerDetail };

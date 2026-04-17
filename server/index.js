@@ -37,17 +37,6 @@ app.get('/', (req, res) => {
     res.json({ message: 'Hireonix Backend (Node.js/Express) is running' });
 });
 
-app.use('/api/v1', (req, res, next) => {
-    if (mongoose.connection.readyState !== 1) {
-        return res.status(503).json({
-            detail: 'MongoDB is not connected yet',
-            dbState: getDbState(),
-        });
-    }
-
-    next();
-});
-
 // Routes
 app.use('/api/v1/auth', require('./routes/auth.routes'));
 app.use('/api/v1/jobs', require('./routes/jobs.routes'));

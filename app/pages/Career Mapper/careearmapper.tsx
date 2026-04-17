@@ -50,7 +50,7 @@ export default function CareerMapper() {
 		let cancelled = false;
 		(async () => {
 			try {
-				const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config');
+				const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config', { skipAuth: true });
 				if (!cancelled) {
 					setConfig(data);
 					setLoadError(null);
@@ -60,7 +60,7 @@ export default function CareerMapper() {
 					const msg =
 						err instanceof ApiError
 							? err.message
-							: 'Could not load career data. Is the API running on port 8000?';
+							: 'Could not load career data from backend.';
 					setLoadError(msg);
 					setConfig(emptyConfig);
 				}
@@ -113,8 +113,8 @@ export default function CareerMapper() {
 		setSkillSaveError(null);
 		setSavingSkill(true);
 		try {
-			await apiClient.post<{ name: string; created: boolean }>('/career-mapper/skills', { name: nextSkill });
-			const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config');
+			await apiClient.post<{ name: string; created: boolean }>('/career-mapper/skills', { name: nextSkill }, { skipAuth: true });
+			const data = await apiClient.get<CareerMapperConfig>('/career-mapper/config', { skipAuth: true });
 			setConfig(data);
 			const savedName = data.base_skills.find((s) => s.toLowerCase() === nextSkill.toLowerCase()) ?? nextSkill;
 			if (!selectedSkills.includes(savedName)) {
@@ -125,7 +125,7 @@ export default function CareerMapper() {
 			const msg =
 				err instanceof ApiError
 					? err.message
-					: 'Could not save skill. Is the API running on port 8000?';
+					: 'Could not save skill to backend.';
 			setSkillSaveError(msg);
 		} finally {
 			setSavingSkill(false);

@@ -27,13 +27,15 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
+// Start the HTTP server immediately so Render keeps the service alive.
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
 // Database Connection
 mongoose.connect(MONGO_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB');
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on http://localhost:${PORT}`);
-        });
     })
     .catch((err) => {
         console.error('❌ MongoDB Connection Error:', err);

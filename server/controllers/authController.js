@@ -4,21 +4,34 @@ const User = require('../models/User');
 // @desc    Register a new user
 // @route   POST /api/auth/signup
 const signup = async (req, res) => {
-    const { username, email, password, firstName, lastName, phone } = req.body;
+    const {
+        username,
+        email,
+        password,
+        firstName,
+        first_name,
+        lastName,
+        last_name,
+        phone,
+    } = req.body;
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const normalizedUsername = (username || '').trim();
+    const normalizedFirstName = firstName || first_name || '';
+    const normalizedLastName = lastName || last_name || '';
 
     try {
-        const userExists = await User.findOne({ $or: [{ email }, { username }] });
+        const userExists = await User.findOne({ $or: [{ email: normalizedEmail }, { username: normalizedUsername }] });
 
         if (userExists) {
             return res.status(400).json({ detail: 'User already exists' });
         }
 
         const user = await User.create({
-            username,
-            email,
+            username: normalizedUsername,
+            email: normalizedEmail,
             password,
-            firstName,
-            lastName,
+            firstName: normalizedFirstName,
+            lastName: normalizedLastName,
             phone,
             isRecruiter: false
         });
@@ -40,12 +53,13 @@ const signup = async (req, res) => {
 // @route   POST /api/auth/login
 const login = async (req, res) => {
     const { username: identifier, password } = req.body;
+    const normalizedIdentifier = (identifier || '').trim();
 
     try {
         const user = await User.findOne({ 
             $or: [
-                { email: identifier.toLowerCase() }, 
-                { username: identifier }
+                { email: normalizedIdentifier.toLowerCase() }, 
+                { username: normalizedIdentifier }
             ] 
         });
 
@@ -66,9 +80,10 @@ const login = async (req, res) => {
 // @route   POST /api/auth/recruiter-login
 const recruiterLogin = async (req, res) => {
     const { username, password } = req.body;
+    const normalizedUsername = (username || '').trim().toLowerCase();
 
     // Hardcoded logic to match the Django mock-up for now
-    if (username.toLowerCase() === 'admin@careerai.com' || username === 'admin') {
+    if (normalizedUsername === 'admin@careerai.com' || normalizedUsername === 'admin') {
         if (password === 'Admin@123') {
             let user = await User.findOne({ email: 'admin@careerai.com' });
             
